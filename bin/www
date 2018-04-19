@@ -27,24 +27,24 @@ io.on("connection", function (socket) {
     console.log(socket.id);
     var socketid = socket.id;
     var UserId;
-    socket.on("login", json=> {
+    socket.on("login", json => {
         var data = JSON.parse(JSON.stringify(json));
         models.Users.findOne({
             where: {
                 login: data.login
             }
-        }).then(res=> {
+        }).then(res => {
             UserId = res.id;
 
             models.ConnectedUsers.findOne({
                 where: {
                     UserId: res.id
                 }
-            }).then(json=> {
+            }).then(json => {
                 json.update({
                     sockedid: socketid
                 });
-            }).catch(error=> {
+            }).catch(error => {
                 models.ConnectedUsers.create({
                     UserId: res.id,
                     sockedid: socketid
@@ -54,9 +54,9 @@ io.on("connection", function (socket) {
                 include: [
                     models.Users
                 ]
-            }).then(res=> {
+            }).then(res => {
                 var data = [];
-                res.forEach(i=> {
+                res.forEach(i => {
                     data.push(i.User);
                 });
                 socket.emit("start", {
@@ -64,52 +64,69 @@ io.on("connection", function (socket) {
                     data: data
                 });
             });
-        }).catch(error=> {
+        }).catch(error => {
 
         });
     });
-    socket.on("signup", json=> {
-        console.log(json);
+    socket.on("signup", json => {
         var jdata = JSON.parse(json);
-        console.log(json);
         models.Users.findOne({
-            where:{
-                login:jdata.login
+            where: {
+                login: jdata.login
             }
-        }).then(ufo=>{
-            socket.emit("xato",{
-                error:true,
-                message:"Bunday login ro'yhatdan o'tgan"
-            });
-        }).catch(err=>{
-            models.Users.create({
-                login: jdata.login,
-                last_name: jdata.lastname,
-                first_name: jdata.firstname,
-                middle_name: jdata.middlename,
-                mobile: jdata.mobile
-            }).then(next=> {
-                models.ConnectedUsers.findOne({
-                    where: {
-                        UserId: next.id
-                    }
-                }).then(j=> {
-                    j.update({
-                        sockedid: socketid
+        }).then(ufo => {
+            if (ufo == null) {
+                models.Users.create({
+                    login: jdata.login,
+                    last_name: jdata.lastname,
+                    first_name: jdata.firstname,
+                    middle_name: jdata.middlename,
+                    mobile: jdata.mobile
+                }).then(next => {
+                    models.ConnectedUsers.findOne({
+                        where: {
+                            UserId: next.id
+                        }
+                    }).then(j => {
+                        if (j == null) {
+                            models.ConnectedUsers.create({
+                                UserId: next.id,
+                                sockedid: socketid
+                            });
+                        } else {
+                            j.update({
+                                sockedid: socketid
+                            });
+                        }
+
+                    }).catch(er => {
+
                     });
-                }).catch(er=> {
-                    models.ConnectedUsers.create({
-                        UserId: next.id,
-                        sockedid: socketid
+                    models.ConnectedUsers.findAll({
+                        include: [
+                            models.Users
+                        ]
+                    }).then(res => {
+                        var data = [];
+                        res.forEach(i => {
+                            data.push(i.User);
+                        });
+                        socket.emit("start", {
+                            error: false,
+                            data: data
+                        });
                     });
+                }).catch(err => {
+                    console.log(err);
                 });
+            } else {
                 models.ConnectedUsers.findAll({
                     include: [
                         models.Users
                     ]
-                }).then(res=> {
+                }).then(res => {
                     var data = [];
-                    res.forEach(i=> {
+                    res.forEach(i => {
                         data.push(i.User);
                     });
                     socket.emit("start", {
@@ -117,44 +134,51 @@ io.on("connection", function (socket) {
                         data: data
                     });
                 });
-            });
+                /*socket.emit("xato", {
+                    error: true,
+                    message: "Bunday login ro'yhatdan o'tgan"
+                });*/
+            }
+            //
+        }).catch(err => {
+            console.log(err);
         });
     });
-    socket.on("send", json=> {
+    socket.on("send", json => {
         var data = JSON.parse();
         console.log(data);
         socket.broadcast.emit("newMessage", json);
     });
-    socket.on("user", json=> {
+    socket.on("user", json => {
         //{from:1,to:2}
-        json = JSON.parse(JSON.stringify(json));
+        var jdata = JSON.parse(JSON.stringify(json));
         models.Messangers.findAll({
             where: {
                 [Op.or]: [{
                     [Op.and]: [
-                        {From_User: json.from},
-                        {To_User: json.to}]
+                        {From_User: jdata.from},
+                        {To_User: jdata.to}]
                 },
                     {
                         [Op.and]: [
-                            {From_User: json.to},
-                            {To_User: json.from}]
+                            {From_User: jdata.to},
+                            {To_User: jdata.from}]
                     }
                 ]
             }
-        }).then(mess=> {
+        }).then(mess => {
             var data = [];
-            mess.forEach(i=>{
+            mess.forEach(i => {
                 data.push({
-                    message:i.text,
-                    from:i.From_User,
-                    to:i.To_User
+                    message: i.text,
+                    from: i.From_User,
+                    to: i.To_User
                 });
             });
-            socket.emit("messages",data);
+            socket.emit("messages", data);
         });
     });
-    socket.on("disconnect", data=> {
+    socket.on("disconnect", data => {
         models.ConnectedUsers.destroy({
             where: {
                 UserId: UserId
@@ -172,6 +196,7 @@ models.sequelize.sync().then(function () {
     server.on('error', onError);
     server.on('listening', onListening);
 });
+
 /*server.listen(port);
  server.on('error', onError);
  server.on('listening', onListening);*/
