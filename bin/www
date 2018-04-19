@@ -170,9 +170,7 @@ io.on("connection", function (socket) {
             var data = [];
             mess.forEach(i => {
                 data.push({
-                    message: i.text,
-                    from: i.From_User,
-                    to: i.To_User
+
                 });
             });
             socket.emit("messages", data);
