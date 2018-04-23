@@ -1,64 +1,85 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>{{title}}</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-<h1>Hello World!</h1>
-<div id="future"></div>
-{{!--<form id="form" id="chat_form">--}}
-<input id="chat_input" type="text">
-<input id="inputbtn" type="button" value="Send">
-{{!--</form>--}}
-<div class="data"></div>
-<!--script src="https://code.jquery.com/jquery-1.10.2.min.js"></script-->
-<script src="./js/jquery-1.10.2.min.js"></script>
-<script src="/socket.io/socket.io.js"></script>
-<script src="./js/main.js"></script>
-<script>
-    $(function () {
 
-        var socket = io.connect('http://127.0.0.1:3000');
-        socket.on('connect', function (data) {
-            socket.emit("login", {
-                login:"Feruz"
-            });
-            /*socket.emit('signup', {
-                "login": "Feruz",
-                "first_name": "Ostonov",
-                "last_name": "Feruz",
-                "middle_name": "O'tkir o'g'li",
-                "mobile": "+998909618051"
-            });*/
-            $("#inputbtn").click(function () {
-                socket.emit("send", {
-                    dataType: "text",
-                    Message: $("#chat_input").val()
+<body>
+    <h1>Hello World!</h1>
+    <div id="future"></div>
+    {{!--
+    <form id="form" id="chat_form">--}}
+        <input id="chat_input" type="text">
+        <input id="inputbtn" type="button" value="Send"> {{!--
+    </form>--}}
+    <div class="data"></div>
+    <!--script src="https://code.jquery.com/jquery-1.10.2.min.js"></script-->
+    <script src="./js/jquery-1.10.2.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./js/main.js"></script>
+    <script>
+        $(function () {
+
+            var socket = io();
+            socket.emit('signup', {
+                    "login": "Feruz",
+                    "firstname": "Ostonov",
+                    "lastname": "Feruz",
+                    "middlename": "O'tkir o'g'li",
+                    "mobile": "+998909618051"
                 });
-            });
-            socket.on("error",function (data) {
-                data = JSON.parse(data);
-                $(".data").append(data.error);
-            });
-            socket.on("start", function (data) {
-                console.log(data);
-                data = JSON.parse(JSON.stringify(data));
-           /* $.each(data.data, function (i) {
-                $(".data").append(data.data[i].User.first_name+"_______"+data.data[i].sockedid+"<br>")
-            })*/
-            });
-            socket.on("newMessage", function (data) {
-                console.log(data);
-                data = JSON.parse(JSON.stringify(data));
-                $(".data").append(data.Message + "<br>");
-            });
+            {{!-- socket.on('connection', function (socket) {
+                
+            }); --}}
+
+            {
+                {
+                    !--socket.on('connect', function (socket) {
+                        socket.emit("login", {
+                            login: "Feruz"
+                        });
+                        socket.emit('signup', {
+                            "login": "Feruz",
+                            "firstname": "Ostonov",
+                            "lastname": "Feruz",
+                            "middlename": "O'tkir o'g'li",
+                            "mobile": "+998909618051"
+                        });
+                        $("#inputbtn").click(function () {
+                            socket.emit("send", {
+                                dataType: "text",
+                                Message: $("#chat_input").val()
+                            });
+                        });
+                        socket.on("error", function (data) {
+                            data = JSON.parse(data);
+                            $(".data").append(data.error);
+                        });
+                        socket.on("start", function (data) {
+                            console.log(data);
+                            data = JSON.parse(JSON.stringify(data));
+                            /* $.each(data.data, function (i) {
+                                 $(".data").append(data.data[i].User.first_name+"_______"+data.data[i].sockedid+"<br>")
+                             })*/
+                        });
+                        {
+                            {
+                                !--socket.on("newMessage", function (data) {
+                                    console.log(data);
+                                    data = JSON.parse(JSON.stringify(data));
+                                    $(".data").append(data.Message + "<br>");
+                                }); --}
+                        }
+                    }); --}
+            }
+
+
         });
 
-
-    });
-
-</script>
+    </script>
 </body>
+
 </html>

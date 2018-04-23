@@ -13,7 +13,7 @@ var models = require('../models');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '4000');
 app.set('port', port);
 
 /**
@@ -22,23 +22,26 @@ app.set('port', port);
 
 var server = http.createServer(app);
 var io = require("socket.io")(server);
+const Op = models.Sequelize.Op;
 io.on("connection", function (socket) {
     socket.join("default");
     console.log(socket.id);
     var socketid = socket.id;
     var UserId;
     socket.on("login", json => {
-        var data = JSON.parse(JSON.stringify(json));
+
+        json = JSON.parse(json);
         models.Users.findOne({
             where: {
-                login: data.login
+                login: json.login
             }
-        }).then(res => {
-            UserId = res.id;
-
+        }).then(ures => {
+            UserId = ures.id;
+            socket.emit("me", ures.dataValues);
+            // console.log(ures.dataValues);
             models.ConnectedUsers.findOne({
                 where: {
-                    UserId: res.id
+                    UserId: ures.id
                 }
             }).then(json => {
                 json.update({
@@ -46,14 +49,15 @@ io.on("connection", function (socket) {
                 });
             }).catch(error => {
                 models.ConnectedUsers.create({
-                    UserId: res.id,
+                    UserId: ures.id,
                     sockedid: socketid
                 });
             });
             models.ConnectedUsers.findAll({
                 include: [
                     models.Users
-                ]
+                ],
+
             }).then(res => {
                 var data = [];
                 res.forEach(i => {
@@ -65,17 +69,19 @@ io.on("connection", function (socket) {
                 });
             });
         }).catch(error => {
-
+            console.log("Error login");
         });
     });
     socket.on("signup", json => {
         var jdata = JSON.parse(json);
+        console.log(jdata);
         models.Users.findOne({
             where: {
                 login: jdata.login
             }
         }).then(ufo => {
             if (ufo == null) {
+                console.log(ufo);
                 models.Users.create({
                     login: jdata.login,
                     last_name: jdata.lastname,
@@ -83,6 +89,9 @@ io.on("connection", function (socket) {
                     middle_name: jdata.middlename,
                     mobile: jdata.mobile
                 }).then(next => {
+                    UserId = next.id;
+                    socket.emit("me", next.dataValues);
+                    console.log("\n UserId === " + UserId + "\n");
                     models.ConnectedUsers.findOne({
                         where: {
                             UserId: next.id
@@ -92,17 +101,23 @@ io.on("connection", function (socket) {
                             models.ConnectedUsers.create({
                                 UserId: next.id,
                                 sockedid: socketid
+                            }).then(cres=>{
+                                socket.broadcast.emit("newContact",[].push(cres.User));
                             });
                         } else {
                             j.update({
                                 sockedid: socketid
                             });
                         }
-
                     }).catch(er => {
 
                     });
                     models.ConnectedUsers.findAll({
+                        where:{
+                            UserId:{
+                                [Op.ne]:next.id
+                            }
+                        },
                         include: [
                             models.Users
                         ]
@@ -120,24 +135,26 @@ io.on("connection", function (socket) {
                     console.log(err);
                 });
             } else {
-                models.ConnectedUsers.findAll({
-                    include: [
-                        models.Users
-                    ]
-                }).then(res => {
-                    var data = [];
-                    res.forEach(i => {
-                        data.push(i.User);
-                    });
-                    socket.emit("start", {
-                        error: false,
-                        data: data
-                    });
-                });
-                /*socket.emit("xato", {
+                socket.emit("xato", {
                     error: true,
-                    message: "Bunday login ro'yhatdan o'tgan"
-                });*/
+                    message: "Bunday login ro'yhatdan o'tgan",
+                    data:[]
+                });
+                // models.ConnectedUsers.findAll({
+                //     include: [
+                //         models.Users
+                //     ]
+                // }).then(res => {
+                //     var data = [];
+                //     res.forEach(i => {
+                //         data.push(i.User);
+                //     });
+                //     socket.emit("start", {
+                //         error: false,
+                //         data: data
+                //     });
+                // });
+
             }
             //
         }).catch(err => {
@@ -145,34 +162,49 @@ io.on("connection", function (socket) {
         });
     });
     socket.on("send", json => {
-        var data = JSON.parse();
-        console.log(data);
-        socket.broadcast.emit("newMessage", json);
+        //{from:1,to:2,message:asd}
+        json = JSON.parse(json);
+        console.log(json);
+        var to = null;
+        models.ConnectedUsers.findOne({
+            where: {
+                UserId: json.to,
+            },
+            include: [
+                models.Users
+            ]
+        }).then(connected=> {
+            if (connected != null) {
+                to = connected;
+            } else {
+                console.log(connected);
+            }
+        });
+        //json.push("name:" + );
+        console.log(to);
+        console.log(json);
+        models.Messangers.create({
+            From_User: json.from,
+            To_User: json.to,
+            text: json.message
+        }).then(mress=> {
+            socket.broadcast.to(to.sockedid).emit("newMessage", json);
+        });
     });
-    socket.on("user", json => {
+    socket.on("getConversation", json => {
         //{from:1,to:2}
         var jdata = JSON.parse(JSON.stringify(json));
+        console.log(jdata);
         models.Messangers.findAll({
             where: {
-                [Op.or]: [{
-                    [Op.and]: [
-                        {From_User: jdata.from},
-                        {To_User: jdata.to}]
-                },
-                    {
-                        [Op.and]: [
-                            {From_User: jdata.to},
-                            {To_User: jdata.from}]
-                    }
-                ]
+                [Op.or]: [{From_User: jdata.from},{To_User: jdata.to}]
             }
         }).then(mess => {
             var data = [];
             mess.forEach(i => {
-                data.push({
-
-                });
+                data.push(i);
             });
+            console.log(data);
             socket.emit("messages", data);
         });
     });
