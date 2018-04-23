@@ -54,6 +54,11 @@ io.on("connection", function (socket) {
                 });
             });
             models.ConnectedUsers.findAll({
+                where:{
+                    UserId:{
+                        [Op.ne]:UserId
+                    }
+                },
                 include: [
                     models.Users
                 ],
@@ -101,8 +106,8 @@ io.on("connection", function (socket) {
                             models.ConnectedUsers.create({
                                 UserId: next.id,
                                 sockedid: socketid
-                            }).then(cres=>{
-                                socket.broadcast.emit("newContact",[].push(cres.User));
+                            }).then(cres => {
+                                socket.broadcast.emit("newContact", [].push(cres.User));
                             });
                         } else {
                             j.update({
@@ -113,9 +118,9 @@ io.on("connection", function (socket) {
 
                     });
                     models.ConnectedUsers.findAll({
-                        where:{
-                            UserId:{
-                                [Op.ne]:next.id
+                        where: {
+                            UserId: {
+                                [Op.ne]: next.id
                             }
                         },
                         include: [
@@ -138,7 +143,7 @@ io.on("connection", function (socket) {
                 socket.emit("xato", {
                     error: true,
                     message: "Bunday login ro'yhatdan o'tgan",
-                    data:[]
+                    data: []
                 });
                 // models.ConnectedUsers.findAll({
                 //     include: [
@@ -173,7 +178,7 @@ io.on("connection", function (socket) {
             include: [
                 models.Users
             ]
-        }).then(connected=> {
+        }).then(connected => {
             if (connected != null) {
                 to = connected;
             } else {
@@ -187,25 +192,42 @@ io.on("connection", function (socket) {
             From_User: json.from,
             To_User: json.to,
             text: json.message
-        }).then(mress=> {
-            socket.broadcast.to(to.sockedid).emit("newMessage", json);
+        }).then(mress => {
+            socket.broadcast.to(to.sockedid).emit("newMessage", JSON.stringify(json));
         });
     });
     socket.on("getConversation", json => {
         //{from:1,to:2}
-        var jdata = JSON.parse(JSON.stringify(json));
+        var jdata = JSON.parse(json);
         console.log(jdata);
         models.Messangers.findAll({
             where: {
-                [Op.or]: [{From_User: jdata.from},{To_User: jdata.to}]
-            }
+                [Op.or]: [
+                    {
+                        [Op.and]: [{From_User: jdata.from}, {To_User: jdata.to}]
+                    },
+                    {
+                        [Op.and]: [{From_User: jdata.to}, {To_User: jdata.from}]
+                    }
+                ]
+            },
+            include:[
+                models.Users
+            ]
         }).then(mess => {
             var data = [];
             mess.forEach(i => {
-                data.push(i);
+                //console.log(i.dataValues);
+                //console.log("\n");
+                data.push({
+                    Userid:i.UserId,
+                    text:i.text,
+                    name:i.User.first_name,
+                    time:i.createdAt
+                });
             });
             console.log(data);
-            socket.emit("messages", data);
+            socket.emit("messages", {data:data});
         });
     });
     socket.on("disconnect", data => {
