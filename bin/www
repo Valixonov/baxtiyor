@@ -182,7 +182,7 @@ io.on("connection", function (socket) {
             if (connected != null) {
                 to = connected;
             } else {
-                console.log(connected);
+                console.log('123========='+connected);
             }
         });
         //json.push("name:" + );
@@ -193,7 +193,7 @@ io.on("connection", function (socket) {
             To_User: json.to,
             text: json.message
         }).then(mress => {
-            socket.broadcast.to(to.sockedid).emit("newMessage", JSON.stringify(json));
+            socket.broadcast.to(to.sockedid).emit("newMessage", {json});
         });
     });
     socket.on("getConversation", json => {
