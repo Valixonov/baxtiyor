@@ -39,7 +39,13 @@ io.on("connection", function (socket) {
             UserId = ures.id;
             socket.emit("me", ures.dataValues);
             // console.log(ures.dataValues);
-            models.ConnectedUsers.findOne({
+            models.Users.findAll({}).then(allUsers=>{
+                socket.emit("start", {
+                    error: false,
+                    data: allUsers
+                });
+            });
+            /* models.ConnectedUsers.findOne({
                 where: {
                     UserId: ures.id
                 }
@@ -72,7 +78,7 @@ io.on("connection", function (socket) {
                     error: false,
                     data: data
                 });
-            });
+            }); */
         }).catch(error => {
             console.log("Error login");
         });
@@ -97,7 +103,7 @@ io.on("connection", function (socket) {
                     UserId = next.id;
                     socket.emit("me", next.dataValues);
                     console.log("\n UserId === " + UserId + "\n");
-                    models.ConnectedUsers.findOne({
+                    /* models.ConnectedUsers.findOne({
                         where: {
                             UserId: next.id
                         }
@@ -135,6 +141,12 @@ io.on("connection", function (socket) {
                             error: false,
                             data: data
                         });
+                    }); */
+                    models.Users.findAll({}).then(allUsers => {
+                        socket.emit("start", {
+                            error: false,
+                            data: allUsers
+                        });
                     });
                 }).catch(err => {
                     console.log(err);
@@ -169,7 +181,7 @@ io.on("connection", function (socket) {
     socket.on("send", json => {
         //{from:1,to:2,message:asd}
         json = JSON.parse(json);
-        console.log(json);
+        //console.log(json);
         var to = null;
         models.ConnectedUsers.findOne({
             where: {
@@ -182,18 +194,21 @@ io.on("connection", function (socket) {
             if (connected != null) {
                 to = connected;
             } else {
-                console.log(connected);
+                console.log("ConnectedUsers======================"+connected);
             }
         });
         //json.push("name:" + );
-        console.log(to);
-        console.log(json);
+        console.log("to User==============="+to);
+        console.log("Json data====================="+json);
+        json.push()
         models.Messangers.create({
             From_User: json.from,
             To_User: json.to,
             text: json.message
         }).then(mress => {
-            socket.broadcast.to(to.sockedid).emit("newMessage", JSON.stringify(json));
+            if(to!=null){
+                socket.broadcast.to(to.sockedid).emit("newMessage", {json});
+            }
         });
     });
     socket.on("getConversation", json => {
